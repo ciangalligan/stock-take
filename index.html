@@ -14,30 +14,32 @@
 }
 body{font-family:'League Spartan',sans-serif;background:var(--main-bg);margin:0;padding:20px;display:flex;flex-direction:column;align-items:center;}
 h1{font-weight:600;margin:0;color:var(--font-color);text-align:center;}
-h2{font-style:italic;font-weight:400;font-size:0.9rem;color:var(--font-color);margin:10px 0 40px;text-align:center;}
+h2{font-style:italic;font-weight:400;font-size:0.9rem;color:var(--font-color);margin:10px 0 10px;text-align:center;}
 section{width:95%;max-width:1600px;background:var(--chart-bg);border-radius:10px;padding:20px;margin-bottom:30px;display:flex;flex-direction:column;align-items:center;}
 #stock-heading{font-size:1.5rem;font-weight:600;margin-bottom:10px;}
-#input-area{margin:15px 0;width:320px;position:relative;}
+#input-area{margin:5px 0;width:250px;position:relative;}
 input[type=text]{padding:8px 12px;font-size:16px;border:1px solid #ccc;border-radius:5px;width:100%;}
 #suggestions{position:absolute;background:#fff;width:100%;border:1px solid #ccc;max-height:250px;overflow-y:auto;z-index:10;display:none;}
-#suggestions div{padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:5px;}
+#suggestions div{padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;}
 #suggestions div:hover{background-color:var(--area-color);}
-#stock-info{display:flex;gap:15px;margin:15px 0;justify-content:center;flex-wrap:wrap;}
+#suggestions img{width:16px;height:16px;}
+#stock-info{display:flex;gap:15px;margin:10px 0;justify-content:center;flex-wrap:wrap;}
 .stock-item{background:var(--btn-bg);padding:10px 15px;border-radius:6px;border:1px solid #ccc;}
 #range-buttons{margin:15px 0;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
 .range-btn{padding:6px 12px;border:none;border-radius:4px;cursor:pointer;background:var(--btn-bg);color:var(--font-color);font-weight:600;}
 .range-btn.active{background:var(--line1);color:#fff;}
-#chart{width:60%;height:600px;background:var(--chart-bg);position:relative;}
+#chart{width:55%;height:450px;background:var(--chart-bg);position:relative;}
+#chart-logo{position:absolute;top:20%;left:20%;transform:translate(-50%, -50%);opacity:0.4;width:70px;height:70px;pointer-events:none;z-index:0;filter:grayscale(100%) brightness(0);display:none;}
 .loading{color:var(--line1);font-weight:600;margin:20px 0;}
-canvas{display:block;width:100%;height:100%;}
-.trend-arrow{font-size:2rem;margin:15px 0;display:flex;align-items:center;justify-content:center;gap:10px;}
-.trend-arrow .arrow{font-weight:300;transition:transform 0.3s ease;}
-.trend-up{color:#2d7a3e;}
-.trend-down{color:#c94a3a;}
+canvas{display:block;width:100%;height:100%;position:relative;z-index:1;}
+.trend-arrow{font-size:1.3rem;margin-left:10px;display:inline-flex;align-items:center;}
+.trend-arrow .arrow{font-weight:400;color:#333;}
 #debug{margin-top:20px;padding:15px;background:#f5f5f5;border-radius:6px;max-width:800px;font-size:12px;font-family:monospace;white-space:pre-wrap;max-height:200px;overflow-y:auto;display:none;}
 .api-note{font-size:0.85rem;color:#666;margin-top:10px;text-align:center;font-style:italic;}
 .api-selector{margin:10px 0;}
 .api-selector select{padding:6px 12px;border-radius:4px;border:1px solid #ccc;font-family:'League Spartan',sans-serif;}
+#stock-header{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:15px;}
+#stock-name{font-size:1.1rem;color:#666;}
 </style>
 </head>
 <body>
@@ -46,36 +48,19 @@ canvas{display:block;width:100%;height:100%;}
 <h2>Finance Through Data</h2>
 
 <section id="stocks-section">
-  <div id="stock-heading">AAPL</div>
-  
-  <div class="api-selector">
-    <label>API Provider: 
-      <select id="api-select">
-        <option value="finnhub">Finnhub (Free)</option>
-        <option value="alphavantage">Alpha Vantage (Demo)</option>
-        <option value="twelvedata">Twelve Data (Free)</option>
-      </select>
-    </label>
-    <button id="debug-toggle" style="margin-left:10px;padding:6px 12px;border-radius:4px;border:1px solid #ccc;cursor:pointer;">Show Debug</button>
-  </div>
-  
-  <div id="input-area">
-    <input type="text" id="ticker" placeholder="Search ticker (e.g. AAPL)">
-    <div id="suggestions"></div>
-  </div>
-  
-  <div style="margin-bottom:10px;">
-    <label><input type="checkbox" id="overlay-ticker"> Overlay Second Ticker</label>
+  <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:10px;">
+    <div id="input-area">
+      <input type="text" id="ticker" placeholder="Search ticker (e.g. AAPL)">
+      <div id="suggestions"></div>
+    </div>
+    
+    <label style="white-space:nowrap;"><input type="checkbox" id="overlay-ticker"> Overlay Second Ticker</label>
   </div>
   
   <div id="stock-info">
     <div class="stock-item" id="info-close">Close: -</div>
     <div class="stock-item" id="info-open">Open: -</div>
     <div class="stock-item" id="info-volume">Volume: -</div>
-  </div>
-  
-  <div class="trend-arrow" id="trend-arrow" style="display:none;">
-    <span class="arrow" id="arrow-icon"></span>
   </div>
   
   <div id="range-buttons">
@@ -85,11 +70,31 @@ canvas{display:block;width:100%;height:100%;}
     <button class="range-btn" data-range="365">1Y</button>
   </div>
   
+  <div id="stock-header">
+    <span id="stock-name">Apple Inc.</span>
+    <span id="stock-heading">AAPL</span>
+    <span class="trend-arrow" id="trend-arrow" style="display:none;">
+      <span class="arrow" id="arrow-icon"></span>
+    </span>
+  </div>
+  
   <div id="loading" class="loading" style="display:none;">Loading data...</div>
-  <div class="api-note" id="api-note">Using Finnhub API</div>
   <div id="chart">
+    <img id="chart-logo" src="" alt="">
     <canvas id="chartCanvas"></canvas>
   </div>
+  
+  <div class="api-selector" style="margin-top:15px;">
+    <label>API Provider: 
+      <select id="api-select">
+        <option value="finnhub">Finnhub (Free)</option>
+        <option value="alphavantage">Alpha Vantage (Demo)</option>
+        <option value="twelvedata">Twelve Data (Free)</option>
+      </select>
+    </label>
+    <button id="debug-toggle" style="margin-left:10px;padding:6px 12px;border-radius:4px;border:1px solid #ccc;cursor:pointer;">Show Debug</button>
+  </div>
+  <div class="api-note" id="api-note">Using Finnhub API</div>
   
   <div id="debug"></div>
 </section>
@@ -100,6 +105,8 @@ const tickerInput = document.getElementById("ticker");
 const suggestionsDiv = document.getElementById("suggestions");
 const overlayCheckbox = document.getElementById("overlay-ticker");
 const stockHeading = document.getElementById("stock-heading");
+const stockName = document.getElementById("stock-name");
+const chartLogo = document.getElementById("chart-logo");
 const loadingDiv = document.getElementById("loading");
 const debugDiv = document.getElementById("debug");
 const debugToggle = document.getElementById("debug-toggle");
@@ -143,6 +150,29 @@ const APIs = {
 
 const tickersList = ["AAPL","MSFT","TSLA","GOOGL","AMZN","SPY","NFLX","NVDA","META","IBM","QQQ","DIA","BA","WMT","V","JPM","JNJ","PG","KO","DIS"];
 
+const stockNames = {
+  "AAPL": "Apple Inc.",
+  "MSFT": "Microsoft Corporation",
+  "TSLA": "Tesla, Inc.",
+  "GOOGL": "Alphabet Inc.",
+  "AMZN": "Amazon.com, Inc.",
+  "SPY": "SPDR S&P 500 ETF",
+  "NFLX": "Netflix, Inc.",
+  "NVDA": "NVIDIA Corporation",
+  "META": "Meta Platforms, Inc.",
+  "IBM": "IBM",
+  "QQQ": "Invesco QQQ Trust",
+  "DIA": "SPDR Dow Jones",
+  "BA": "Boeing Company",
+  "WMT": "Walmart Inc.",
+  "V": "Visa Inc.",
+  "JPM": "JPMorgan Chase",
+  "JNJ": "Johnson & Johnson",
+  "PG": "Procter & Gamble",
+  "KO": "Coca-Cola Company",
+  "DIS": "Walt Disney Company"
+};
+
 function log(msg, data) {
   const timestamp = new Date().toLocaleTimeString();
   const logEntry = "[" + timestamp + "] " + msg;
@@ -171,8 +201,16 @@ apiSelect.addEventListener("change", () => {
 tickerInput.addEventListener("input", () => {
   const val = tickerInput.value.trim().toUpperCase();
   const filtered = tickersList.filter(t => t.startsWith(val));
-  suggestionsDiv.innerHTML = filtered.map(t => "<div>" + t + "</div>").join("");
+  suggestionsDiv.innerHTML = filtered.map(t => {
+    return `<div data-ticker="${t}"><img src="https://cdn.simpleicons.org/${t.toLowerCase()}" onerror="this.remove()" alt="">${t}</div>`;
+  }).join("");
   suggestionsDiv.style.display = filtered.length ? "block" : "none";
+});
+
+document.addEventListener("click", (e) => {
+  if (!tickerInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+    suggestionsDiv.style.display = 'none';
+  }
 });
 
 suggestionsDiv.addEventListener("click", (e) => {
@@ -288,7 +326,15 @@ async function fetchWithTwelveData(symbol) {
 async function fetchData(symbol) {
   try {
     loadingDiv.style.display = 'block';
-    stockHeading.textContent = symbol.toUpperCase();
+    const upperSymbol = symbol.toUpperCase();
+    stockHeading.textContent = upperSymbol;
+    stockName.textContent = stockNames[upperSymbol] || upperSymbol;
+    
+    // Update chart logo from Simple Icons
+    chartLogo.src = `https://cdn.simpleicons.org/${upperSymbol.toLowerCase()}`;
+    chartLogo.style.display = 'block';
+    chartLogo.onerror = () => { chartLogo.style.display = 'none'; };
+    
     debugLog = [];
     log("=== Starting fetch for " + symbol + " ===");
     
@@ -339,17 +385,18 @@ async function fetchData(symbol) {
     stockInfo.open.textContent = "Open: $" + latest.open.toFixed(2);
     stockInfo.volume.textContent = "Volume: " + formatVolume(latest.volume);
     
-    if(data.length >= 3) {
-      const last3 = data.slice(-3);
-      const avgChange = (last3[2].close - last3[0].close) / last3[0].close;
+    if(data.length >= 2) {
+      const latest = data[data.length - 1];
+      const previous = data[data.length - 2];
+      const change = latest.close - previous.close;
       
-      trendArrow.style.display = 'flex';
-      if(avgChange > 0) {
-        arrowIcon.textContent = '↑';
-        arrowIcon.className = 'arrow trend-up';
+      trendArrow.style.display = 'inline-flex';
+      if(change > 0) {
+        arrowIcon.textContent = '▲';
+      } else if(change < 0) {
+        arrowIcon.textContent = '▼';
       } else {
-        arrowIcon.textContent = '↓';
-        arrowIcon.className = 'arrow trend-down';
+        arrowIcon.textContent = '•';
       }
     }
     
@@ -420,7 +467,7 @@ function updateChart(days) {
   const labels = view.map(d => monthNames[d.date.getMonth()] + " " + d.date.getFullYear());
   
   const datasets = [{
-    label: stockHeading.textContent,
+    label: stockHeading.textContent || "Stock",
     data: view.map(d => d.close),
     borderColor: '#1a2e4b',
     backgroundColor: 'rgba(193, 211, 224, 0.6)',
@@ -512,8 +559,12 @@ function updateChart(days) {
               
               if(context.datasetIndex === 0 && view[dataIndex]) {
                 const vol = formatVolume(view[dataIndex].volume);
+                const open = view[dataIndex].open;
+                const close = view[dataIndex].close;
                 return [
                   label + ": $" + value.toFixed(2),
+                  "Open: $" + open.toFixed(2),
+                  "Close: $" + close.toFixed(2),
                   "Volume: " + vol
                 ];
               }
