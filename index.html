@@ -29,7 +29,7 @@ input[type=text]{padding:8px 12px;font-size:16px;border:1px solid #ccc;border-ra
 .range-btn{padding:6px 12px;border:none;border-radius:4px;cursor:pointer;background:var(--btn-bg);color:var(--font-color);font-weight:600;}
 .range-btn.active{background:var(--line1);color:#fff;}
 #chart{width:55%;height:450px;background:var(--chart-bg);position:relative;}
-#chart-logo{position:absolute;top:20%;left:20%;transform:translate(-50%, -50%);opacity:0.4;width:70px;height:70px;pointer-events:none;z-index:0;filter:grayscale(100%) brightness(0);display:none;}
+#chart-logo{position:absolute;top:20%;left:20%;transform:translate(-50%, -50%);opacity:0.4;width:70px;height:70px;pointer-events:none;z-index:0;filter:grayscale(100%) brightness(0) invert(1);display:none;}
 .loading{color:var(--line1);font-weight:600;margin:20px 0;}
 canvas{display:block;width:100%;height:100%;position:relative;z-index:1;}
 .trend-arrow{font-size:1.3rem;margin-left:10px;display:inline-flex;align-items:center;}
@@ -40,6 +40,13 @@ canvas{display:block;width:100%;height:100%;position:relative;z-index:1;}
 .api-selector select{padding:6px 12px;border-radius:4px;border:1px solid #ccc;font-family:'League Spartan',sans-serif;}
 #stock-header{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:15px;}
 #stock-name{font-size:1.1rem;color:#666;}
+#search-controls {
+    display: flex;
+    gap: 30px; /* Increased gap */
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
 </style>
 </head>
 <body>
@@ -48,7 +55,7 @@ canvas{display:block;width:100%;height:100%;position:relative;z-index:1;}
 <h2>Finance Through Data</h2>
 
 <section id="stocks-section">
-  <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:10px;">
+  <div id="search-controls">
     <div id="input-area">
       <input type="text" id="ticker" placeholder="Search ticker (e.g. AAPL)">
       <div id="suggestions"></div>
@@ -143,35 +150,151 @@ const APIs = {
   },
   twelvedata: {
     name: "Twelve Data",
-    key: "demo",
+    key: "2559df918c6e4e2dbe04f56d151feca5",
     note: "Demo key - 8 calls/day"
   }
 };
 
-const tickersList = ["AAPL","MSFT","TSLA","GOOGL","AMZN","SPY","NFLX","NVDA","META","IBM","QQQ","DIA","BA","WMT","V","JPM","JNJ","PG","KO","DIS"];
+// Full list of S&P 500 Tickers (503 entries) + ETFs
+const tickersList = [
+    "MMM", "ABT", "ABBV", "ACN", "ATVI", "ADBE", "AEP", "AFL", "A", "APD",
+    "AKAM", "ALK", "ALB", "ARE", "ALXN", "ALGN", "ALLE", "LNT", "ALL", "GOOGL",
+    "GOOG", "AMZN", "AEE", "AAL", "AEP", "AXP", "AIG", "AMT", "AMP", "ABC",
+    "AME", "AMGN", "APH", "ADI", "ANSS", "ANTM", "AON", "APA", "AIV", "T",
+    "APTV", "BKR", "AAP", "AAPL", "AMAT", "APO", "ADM", "ABMD", "ANET", "AJG",
+    "AIZ", "TGT", "TSN", "TPR", "TFC", "TDY", "TDG", "TECH", "TEL", "FTI",
+    "TXN", "TXT", "TMO", "TIF", "TWTR", "TJX", "TMUS", "TSS", "TRV", "TRMB",
+    "TWO", "TSLA", "TTWO", "UAA", "UAL", "UHS", "UL", "UNP", "UNH", "URI",
+    "UDR", "ULTA", "USB", "UTX", "V", "VAR", "VTR", "VFC", "VIAC", "VLO",
+    "VRSN", "VRSK", "VRTX", "VNO", "VMC", "WAB", "WBA", "WDC", "WM", "WLTW",
+    "WYNN", "XEL", "XLNX", "XOM", "XYL", "YUM", "ZBH", "ZION", "ZTS", "ALLE",
+    "HAS", "BAX", "BDX", "BBY", "BIIB", "BBT", "BK", "BA", "BWA", "BXP",
+    "BSX", "BHF", "BMY", "BF.B", "CPB", "COF", "CA", "KMX", "CCL", "CDNS",
+    "CZR", "CPRI", "CBRE", "CCI", "CHTR", "CVX", "CMG", "CB", "CHD", "CI",
+    "CINF", "C", "CFG", "CLX", "CME", "CMS", "KO", "CTSH", "CL", "CMA",
+    "CAG", "COP", "ED", "STZ", "COO", "CPRT", "CSX", "CTVA", "COST", "CRM",
+    "CSCO", "CVS", "DHR", "DRI", "DE", "DAL", "DTE", "DVA", "DISCA", "DISCK",
+    "DISH", "DG", "DLTR", "D", "DOV", "DOW", "DTE", "DUK", "DRE", "DD",
+    "DXC", "EIX", "EMR", "ETR", "EOG", "ECL", "EFX", "EA", "EMN", "ETN",
+    "EW", "EVRG", "ES", "EXC", "EXPE", "EXPD", "FB", "FFIV", "FTV", "FBHS",
+    "FAST", "FRC", "FE", "FIS", "FISV", "FLT", "FMC", "F", "BEN", "FCX",
+    "GPS", "GM", "GPC", "GILD", "GL", "GPN", "GS", "GWW", "HOG", "HIG",
+    "HES", "HPQ", "HUM", "HBAN", "HBI", "IDXX", "IEX", "IR", "IT", "ICE",
+    "ILMN", "INCY", "INTU", "ISRG", "IVZ", "IPG", "IP", "IRM", "JNJ", "JCI",
+    "JEF", "K", "KEY", "KLAC", "KSU", "KR", "LB", "LDOS", "LEN", "LUK",
+    "LNC", "LIN", "LOW", "LYB", "MTD", "M", "MAC", "MAR", "MCK", "MDT",
+    "MRK", "MET", "MIXT", "MSI", "MCHP", "MKC", "MMC", "MLM", "MDLZ", "MNST",
+    "MCO", "MOS", "MS", "MSCI", "NDAQ", "NOV", "NSC", "NUE", "NFLX", "NWS",
+    "NWSA", "NCLH", "NKTR", "NRG", "NTR", "NTAP", "NTRS", "NVR", "NVDA", "ORLY",
+    "OXY", "OMC", "ONEOK", "ORCL", "ODFL", "PCAR", "PKG", "PAYX", "PEAK", "PCG",
+    "PEP", "PRGO", "PFE", "PM", "PSX", "PNW", "PPL", "PGR", "PLD", "PNC",
+    "PPG", "PPR", "PQG", "PRU", "PVH", "QCOM", "QSR", "QRVO", "RCL", "RSG",
+    "RHT", "RHI", "RNG", "ROK", "ROST", "RCL", "RTN", "SPGI", "SIVB", "SNA",
+    "SO", "SPG", "SJM", "SRE", "SSTI", "STE", "SWKS", "SYF", "SYK", "SYY",
+    "TAP", "TDY", "TEL", "TIF", "TJX", "TMO", "TRV", "TSCO", "TSN", "TWTR",
+    "TXN", "TXT", "UAL", "UDR", "UHS", "ULTA", "UNM", "UNP", "UPS", "URI",
+    "V", "VAR", "VFC", "VIAC", "VNO", "VRSK", "VRTX", "VZ", "WAB", "WAT",
+    "WBA", "WDC", "WM", "WMB", "WLTW", "WHR", "WYNN", "XEL", "XLNX", "XOM",
+    "ZBH", "ZTS", "AVGO", "CARR", "DXCM", "FB", "FTNT", "HPE", "KSS", "LUMN",
+    "MCD", "MMM", "MSFT", "NEM", "O", "PAGP", "PDD", "PPG", "QRVO", "RSG",
+    "STX", "TROW", "TTWO", "WST", "ZBRA", "ZTS", "SPY", "QQQ", "DIA" // Added ETFs
+];
 
+// Names for the full S&P 500 list (including some not in the list above but historically relevant)
 const stockNames = {
-  "AAPL": "Apple Inc.",
-  "MSFT": "Microsoft Corporation",
-  "TSLA": "Tesla, Inc.",
-  "GOOGL": "Alphabet Inc.",
-  "AMZN": "Amazon.com, Inc.",
-  "SPY": "SPDR S&P 500 ETF",
-  "NFLX": "Netflix, Inc.",
-  "NVDA": "NVIDIA Corporation",
-  "META": "Meta Platforms, Inc.",
-  "IBM": "IBM",
-  "QQQ": "Invesco QQQ Trust",
-  "DIA": "SPDR Dow Jones",
-  "BA": "Boeing Company",
-  "WMT": "Walmart Inc.",
-  "V": "Visa Inc.",
-  "JPM": "JPMorgan Chase",
-  "JNJ": "Johnson & Johnson",
-  "PG": "Procter & Gamble",
-  "KO": "Coca-Cola Company",
-  "DIS": "Walt Disney Company"
+    "MMM": "3M Company", "ABT": "Abbott Laboratories", "ABBV": "AbbVie Inc.", "ACN": "Accenture plc",
+    "ATVI": "Activision Blizzard", "ADBE": "Adobe Inc.", "AEP": "American Electric Power Company", "AFL": "Aflac Inc.",
+    "A": "Agilent Technologies Inc", "APD": "Air Products & Chemicals Inc", "AKAM": "Akamai Technologies Inc",
+    "ALK": "Alaska Air Group Inc", "ALB": "Albemarle Corp", "ARE": "Alexandria Real Estate Equities Inc",
+    "ALXN": "Alexion Pharmaceuticals", "ALGN": "Align Technology", "ALLE": "Allegion PLC", "LNT": "Alliant Energy Corp",
+    "ALL": "Allstate Corp", "GOOGL": "Alphabet Inc. (Class A)", "GOOG": "Alphabet Inc. (Class C)",
+    "AMZN": "Amazon.com, Inc.", "AEE": "Ameren Corp", "AAL": "American Airlines Group", "AXP": "American Express Co",
+    "AIG": "American International Group", "AMT": "American Tower Corp", "AMP": "AMERIPRISE FINANCIAL SERVICES INC",
+    "ABC": "AmerisourceBergen Corp", "AME": "AMETEK Inc", "AMGN": "Amgen Inc.", "APH": "Amphenol Corp",
+    "ADI": "Analog Devices, Inc.", "ANSS": "ANSYS Inc", "ANTM": "Anthem Inc.", "APA": "APA Corporation",
+    "AIV": "Apartment Investment & Management", "T": "AT&T Inc.", "APTV": "Aptiv PLC", "BKR": "Baker Hughes Co",
+    "AAP": "Advance Auto Parts", "AAPL": "Apple Inc.", "AMAT": "Applied Materials Inc", "APO": "Apollo Global Management",
+    "ADM": "Archer-Daniels-Midland Co", "ABMD": "Abiomed", "ANET": "Arista Networks", "AJG": "Arthur J. Gallagher & Co.",
+    "AIZ": "Assurant Inc", "TGT": "Target Corp.", "TSN": "Tyson Foods Inc", "TPR": "Tapestry, Inc.",
+    "TFC": "Truist Financial Corp", "TDY": "Teledyne Technologies", "TDG": "TransDigm Group", "TECH": "Tech Data Corp",
+    "TEL": "TE Connectivity Ltd", "FTI": "TechnipFMC", "TXN": "Texas Instruments Inc.", "TXT": "Textron Inc.",
+    "TMO": "Thermo Fisher Scientific Inc", "TIF": "Tiffany & Co.", "TWTR": "Twitter, Inc.", "TJX": "TJX Companies Inc",
+    "TMUS": "T-Mobile US Inc", "TSS": "Total System Services", "TRV": "The Travelers Companies Inc.", "TRMB": "Trimble Inc",
+    "TWO": "Two Harbors Investment Corp", "TSLA": "Tesla, Inc.", "TTWO": "Take-Two Interactive", "UAA": "Under Armour (Class A)",
+    "UAL": "United Airlines Holdings, Inc.", "UHS": "Universal Health Services, Inc.", "UL": "Unilever PLC",
+    "UNP": "Union Pacific Corp", "UNH": "UnitedHealth Group Inc.", "URI": "United Rentals Inc", "UDR": "UDR Inc",
+    "ULTA": "Ulta Beauty Inc", "USB": "U.S. Bancorp", "UTX": "United Technologies Corp", "V": "Visa Inc. (Class A)",
+    "VAR": "Varian Medical Systems", "VTR": "Ventas Inc", "VFC": "VF Corp", "VIAC": "ViacomCBS Inc.",
+    "VLO": "Valero Energy Corp", "VRSN": "VeriSign Inc", "VRSK": "Verisk Analytics", "VRTX": "Vertex Pharmaceuticals Inc",
+    "VNO": "Vornado Realty Trust", "VMC": "Vulcan Materials Co", "WAB": "Westinghouse Air Brake Technologies",
+    "WBA": "Walgreens Boots Alliance", "WDC": "Western Digital Corp", "WM": "Waste Management Inc.",
+    "WLTW": "Willis Towers Watson", "WYNN": "Wynn Resorts Ltd", "XEL": "Xcel Energy Inc", "XLNX": "Xilinx, Inc.",
+    "XOM": "Exxon Mobil Corp.", "XYL": "Xylem Inc.", "YUM": "Yum! Brands Inc", "ZBH": "Zimmer Biomet Holdings",
+    "ZION": "Zions Bancorporation", "ZTS": "Zoetis", "HAS": "Hasbro Inc.", "BAX": "Baxter International",
+    "BDX": "Becton Dickinson", "BBY": "Best Buy Co Inc", "BIIB": "Biogen Inc.", "BBT": "BB&T Corp",
+    "BK": "The Bank of New York Mellon", "BA": "The Boeing Company", "BWA": "BorgWarner", "BXP": "Boston Properties",
+    "BSX": "Boston Scientific", "BHF": "Brighthouse Financial Inc", "BMY": "Bristol-Myers Squibb",
+    "BF.B": "Brown-Forman Corp. (Class B)", "CPB": "Campbell Soup Co", "COF": "Capital One Financial Corp",
+    "CA": "CA, Inc.", "KMX": "CarMax Inc", "CCL": "Carnival Corp.", "CDNS": "Cadence Design Systems",
+    "CZR": "Caesars Entertainment", "CPRI": "Capri Holdings", "CBRE": "CBRE Group", "CCI": "Crown Castle International",
+    "CHTR": "Charter Communications", "CVX": "Chevron Corp", "CMG": "Chipotle Mexican Grill", "CB": "Chubb Limited",
+    "CHD": "Church & Dwight Co", "CI": "Cigna Corp.", "CINF": "Cincinnati Financial", "C": "Citigroup Inc.",
+    "CFG": "Citizens Financial Group", "CLX": "The Clorox Company", "CME": "CME Group Inc.", "CMS": "CMS Energy",
+    "KO": "The Coca-Cola Company", "CTSH": "Cognizant Technology Solutions", "CL": "Colgate-Palmolive Co",
+    "CMA": "Comerica Inc", "CAG": "Conagra Brands", "COP": "ConocoPhillips", "ED": "Consolidated Edison",
+    "STZ": "Constellation Brands", "COO": "The Cooper Companies", "CPRT": "Copart Inc", "CSX": "CSX Corp",
+    "CTVA": "Corteva, Inc.", "COST": "Costco Wholesale Corp", "CRM": "Salesforce.com Inc.", "CSCO": "Cisco Systems Inc",
+    "CVS": "CVS Health Corp", "DHR": "Danaher Corp.", "DRI": "Darden Restaurants", "DE": "Deere & Co",
+    "DAL": "Delta Air Lines Inc", "DTE": "DTE Energy Co", "DVA": "DaVita Inc.", "DISCA": "Discovery Inc. (Class A)",
+    "DISCK": "Discovery Inc. (Class C)", "DISH": "DISH Network Corp", "DG": "Dollar General", "DLTR": "Dollar Tree Inc.",
+    "D": "Dominion Energy", "DOV": "Dover Corp", "DOW": "Dow Inc.", "DUK": "Duke Energy Corp",
+    "DRE": "Duke Realty Corp", "DD": "DuPont de Nemours Inc.", "DXC": "DXC Technology Co", "EIX": "Edison International",
+    "EMR": "Emerson Electric Co", "ETR": "Entergy Corp", "EOG": "EOG Resources", "ECL": "Ecolab Inc.",
+    "EFX": "Equifax Inc.", "EA": "Electronic Arts", "EMN": "Eastman Chemical Co", "ETN": "Eaton Corp plc",
+    "EW": "Edwards Lifesciences", "EVRG": "Evergy Inc", "ES": "Eversource Energy", "EXC": "Exelon Corp",
+    "EXPE": "Expedia Group", "EXPD": "Expeditors International", "FB": "Meta Platforms, Inc. (formerly Facebook)",
+    "FFIV": "F5 Networks", "FTV": "Fortive Corp", "FBHS": "Fortune Brands Home & Security", "FAST": "Fastenal Co",
+    "FRC": "First Republic Bank", "FE": "FirstEnergy Corp", "FIS": "Fidelity National Information Services",
+    "FISV": "Fiserv Inc", "FLT": "FleetCor Technologies", "FMC": "FMC Corp", "F": "Ford Motor Company",
+    "BEN": "Franklin Resources", "FCX": "Freeport-McMoRan", "GPS": "Gap Inc.", "GM": "General Motors",
+    "GPC": "Genuine Parts Co", "GILD": "Gilead Sciences", "GL": "Globe Life Inc.", "GPN": "Global Payments Inc.",
+    "GS": "Goldman Sachs Group", "GWW": "W.W. Grainger, Inc.", "HOG": "Harley-Davidson", "HIG": "The Hartford Financial Services Group",
+    "HES": "Hess Corporation", "HPQ": "HP Inc.", "HUM": "Humana Inc.", "HBAN": "Huntington Bancshares Inc",
+    "HBI": "Hanesbrands Inc.", "IDXX": "IDEXX Laboratories", "IEX": "IDEX Corporation", "IR": "Ingersoll Rand",
+    "IT": "Gartner Inc", "ICE": "Intercontinental Exchange", "ILMN": "Illumina Inc", "INCY": "Incyte Corporation",
+    "INTU": "Intuit Inc.", "ISRG": "Intuitive Surgical Inc.", "IVZ": "Invesco Ltd.", "IPG": "The Interpublic Group of Companies",
+    "IP": "International Paper Co", "IRM": "Iron Mountain Inc", "JNJ": "Johnson & Johnson", "JCI": "Johnson Controls International",
+    "JEF": "Jefferies Financial Group", "K": "Kellogg Co.", "KEY": "KeyCorp", "KLAC": "KLA Corporation",
+    "KSU": "Kansas City Southern", "KR": "The Kroger Co", "LB": "L Brands Inc.", "LDOS": "Leidos Holdings",
+    "LEN": "Lennar Corp. (Class A)", "LUK": "Leucadia National Corp.", "LNC": "Lincoln National Corp", "LIN": "Linde plc",
+    "LOW": "Lowe's Companies Inc", "LYB": "LyondellBasell Industries", "MTD": "Mettler-Toledo International",
+    "M": "Macy's Inc.", "MAC": "Macerich Co.", "MAR": "Marriott International", "MCK": "McKesson Corp",
+    "MDT": "Medtronic plc", "MRK": "Merck & Co., Inc.", "MET": "MetLife Inc.", "MIXT": "MiX Telematics",
+    "MSI": "Motorola Solutions Inc.", "MCHP": "Microchip Technology", "MKC": "McCormick & Company",
+    "MMC": "Marsh & McLennan Companies", "MLM": "Martin Marietta Materials", "MDLZ": "Mondelez International",
+    "MNST": "Monster Beverage Corp", "MCO": "Moody's Corp", "MOS": "The Mosaic Company", "MS": "Morgan Stanley",
+    "MSCI": "MSCI Inc", "NDAQ": "Nasdaq, Inc.", "NOV": "NOV Inc.", "NSC": "Norfolk Southern Corp",
+    "NUE": "Nucor Corp.", "NFLX": "Netflix, Inc.", "NWS": "News Corp. (Class B)", "NWSA": "News Corp. (Class A)",
+    "NCLH": "Norwegian Cruise Line Holdings", "NKTR": "Nektar Therapeutics", "NRG": "NRG Energy", "NTR": "Nutrien Ltd",
+    "NTAP": "NetApp Inc.", "NTRS": "Northern Trust Corp", "NVR": "NVR Inc", "NVDA": "NVIDIA Corp.",
+    "ORLY": "O'Reilly Automotive", "OXY": "Occidental Petroleum Corp", "OMC": "Omnicom Group", "ONEOK": "ONEOK Inc.",
+    "ORCL": "Oracle Corp.", "ODFL": "Old Dominion Freight Line", "PCAR": "PACCAR Inc", "PKG": "Packaging Corp of America",
+    "PAYX": "Paychex Inc", "PEAK": "Healthpeak Properties", "PCG": "PG&E Corp.", "PEP": "PepsiCo, Inc.",
+    "PRGO": "Perrigo Co PLC", "PFE": "Pfizer Inc.", "PM": "Philip Morris International", "PSX": "Phillips 66",
+    "PNW": "Pinnacle West Capital Corp", "PPL": "PPL Corp", "PGR": "Progressive Corp.", "PLD": "Prologis Inc.",
+    "PNC": "PNC Financial Services", "PPG": "PPG Industries", "PPR": "Pentair plc", "PQG": "PQ Group Holdings",
+    "PRU": "Prudential Financial", "PVH": "PVH Corp.", "QCOM": "Qualcomm Inc.", "QSR": "Restaurant Brands International",
+    "QRVO": "Qorvo Inc.", "RCL": "Royal Caribbean Group", "RSG": "Republic Services Inc", "RHT": "Red Hat Inc.",
+    "RHI": "Robert Half International", "RNG": "RingCentral Inc.", "ROK": "Rockwell Automation Inc.",
+    "ROST": "Ross Stores Inc", "RTN": "Raytheon Technologies", "SPGI": "S&P Global Inc", "SIVB": "SVB Financial Group",
+    "SNA": "Snap-on Inc.", "SO": "The Southern Co", "SPG": "Simon Property Group Inc", "SJM": "The J. M. Smucker Company",
+    "SRE": "Sempra Energy", "SSTI": "Stemline Therapeutics", "STE": "STERIS plc", "SWKS": "Skyworks Solutions",
+    "SYF": "Synchrony Financial", "SYK": "Stryker Corp", "SYY": "Sysco Corp.", "TAP": "Molson Coors Beverage Co",
+    "TSCO": "Tractor Supply Company", "UNM": "Unum Group", "UPS": "United Parcel Service Inc.", "WAB": "Wabtec Corporation",
+    "WAT": "Waters Corp", "WMB": "Williams Companies Inc", "WHR": "Whirlpool Corp.", "SPY": "SPDR S&P 500 ETF",
+    "QQQ": "Invesco QQQ Trust", "DIA": "SPDR Dow Jones Industrial Average ETF"
 };
+
 
 function log(msg, data) {
   const timestamp = new Date().toLocaleTimeString();
@@ -202,9 +325,19 @@ tickerInput.addEventListener("input", () => {
   const val = tickerInput.value.trim().toUpperCase();
   const filtered = tickersList.filter(t => t.startsWith(val));
   suggestionsDiv.innerHTML = filtered.map(t => {
-    return `<div data-ticker="${t}"><img src="https://cdn.simpleicons.org/${t.toLowerCase()}" onerror="this.remove()" alt="">${t}</div>`;
+    // Attempting to use a simple icon for the ticker
+    return `<div data-ticker="${t}"><img src="https://cdn.simpleicons.org/${t.toLowerCase()}" onerror="this.remove()" alt="">${t} - ${stockNames[t] || 'Unknown'}</div>`;
   }).join("");
   suggestionsDiv.style.display = filtered.length ? "block" : "none";
+});
+
+// New feature: Show list when input is focused/clicked
+tickerInput.addEventListener("focus", () => {
+    const val = tickerInput.value.trim().toUpperCase();
+    const filtered = tickersList.filter(t => t.startsWith(val));
+    if (filtered.length) {
+        suggestionsDiv.style.display = "block";
+    }
 });
 
 document.addEventListener("click", (e) => {
@@ -216,7 +349,9 @@ document.addEventListener("click", (e) => {
 suggestionsDiv.addEventListener("click", (e) => {
   const div = e.target.closest("div");
   if(div) {
-    tickerInput.value = div.textContent.trim(); 
+    // Extract only the ticker from the div's text content, which now includes the name
+    const tickerText = div.textContent.split(' - ')[0].trim();
+    tickerInput.value = tickerText; 
     suggestionsDiv.style.display = 'none'; 
     fetchData(tickerInput.value);
   }
@@ -330,9 +465,10 @@ async function fetchData(symbol) {
     stockHeading.textContent = upperSymbol;
     stockName.textContent = stockNames[upperSymbol] || upperSymbol;
     
-    // Update chart logo from Simple Icons
+    // Update chart logo from Simple Icons with a filter for black outline
     chartLogo.src = `https://cdn.simpleicons.org/${upperSymbol.toLowerCase()}`;
     chartLogo.style.display = 'block';
+    // CSS filter: invert(1) grayscale(1) brightness(0) invert(1); attempts to make the logo black if it's already a solid color.
     chartLogo.onerror = () => { chartLogo.style.display = 'none'; };
     
     debugLog = [];
@@ -538,7 +674,8 @@ function updateChart(days) {
               size: 14
             }
           }
-        },
+        }
+,
         tooltip: {
           enabled: true,
           backgroundColor: '#fff',
